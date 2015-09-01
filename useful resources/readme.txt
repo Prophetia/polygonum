@@ -1,1 +1,1 @@
-Put here every resource you find useful for the development of the project
+Put here every resource you find useful for the project development.
