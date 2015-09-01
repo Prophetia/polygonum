@@ -1,11 +1,3 @@
-/*
-*		This Code Was Created By Jeff Molofee 2000
-*		A HUGE Thanks To Fredric Echols For Cleaning Up
-*		And Optimizing This Code, Making It More Flexible!
-*		If You've Found This Code Useful, Please Let Me Know.
-*		Visit My Site At nehe.gamedev.net
-*/
-
 #include "stdafx.h"
 #include <windows.h>
 #include <gl\gl.h>

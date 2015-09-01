@@ -41,9 +41,13 @@
 
 # Other
 *.opensdf
+*.sdf
 *.ilk
 *.pdb
 *.idb
 *.res
+
+#Visual Studio Files
+*.suo
 
 
