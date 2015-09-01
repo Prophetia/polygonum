@@ -7,399 +7,381 @@
 */
 
 #include "stdafx.h"
-#include <windows.h>		// Header File For Windows
-#include <gl\gl.h>			// Header File For The OpenGL32 Library
-#include <gl\glu.h>			// Header File For The GLu32 Library
+#include <windows.h>
+#include <gl\gl.h>
+#include <gl\glu.h>
+//*********seems to not work anymore and not needed too************
 //#include <gl\glaux.h>		// Header File For The Glaux Library
 #include "3DEngine.h"
 
-HDC			hDC = NULL;		// Private GDI Device Context
-HGLRC		hRC = NULL;		// Permanent Rendering Context
-HWND		hWnd = NULL;		// Holds Our Window Handle
-HINSTANCE	hInstance;		// Holds The Instance Of The Application
+HDC hDC = NULL;
+HGLRC hRC = NULL;
+HWND hWnd = NULL;
+HINSTANCE hInstance;
 
-bool	keys[256];			// Array Used For The Keyboard Routine
-bool	active = TRUE;		// Window Active Flag Set To TRUE By Default
-bool	fullscreen = TRUE;	// Fullscreen Flag Set To Fullscreen Mode By Default
+bool keys[256];
+bool active = TRUE;
+bool fullscreen = TRUE;
 
-LRESULT	CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);	// Declaration For WndProc
+LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
-GLvoid ReSizeGLScene(GLsizei width, GLsizei height)		// Resize And Initialize The GL Window
+GLvoid ReSizeGLScene(GLsizei width, GLsizei height)
 {
-    if (height == 0)										// Prevent A Divide By Zero By
+    if (height == 0)
     {
-        height = 1;										// Making Height Equal One
+        height = 1;
     }
 
-    glViewport(0, 0, width, height);						// Reset The Current Viewport
+    glViewport(0, 0, width, height);
 
-    glMatrixMode(GL_PROJECTION);						// Select The Projection Matrix
-    glLoadIdentity();									// Reset The Projection Matrix
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
 
-    // Calculate The Aspect Ratio Of The Window
-    gluPerspective(45.0f, (GLfloat)width / (GLfloat)height, 0.1f, 100.0f);
+    float fieldOfView = 45.0f;
+    float aspectRatio = (GLfloat)width / (GLfloat)height;
+    float zNear = 0.01f;
+    float zFar = 100.0f;
+    gluPerspective(fieldOfView, aspectRatio, zNear, zFar);
 
-    glMatrixMode(GL_MODELVIEW);							// Select The Modelview Matrix
-    glLoadIdentity();									// Reset The Modelview Matrix
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 }
 
-int InitGL(GLvoid)										// All Setup For OpenGL Goes Here
+int InitGL(GLvoid)
 {
-    glShadeModel(GL_SMOOTH);							// Enable Smooth Shading
-    glClearColor(0.0f, 0.0f, 0.0f, 0.5f);				// Black Background
-    glClearDepth(1.0f);									// Depth Buffer Setup
-    glEnable(GL_DEPTH_TEST);							// Enables Depth Testing
-    glDepthFunc(GL_LEQUAL);								// The Type Of Depth Testing To Do
-    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);	// Really Nice Perspective Calculations
-    return TRUE;										// Initialization Went OK
+    glShadeModel(GL_SMOOTH);
+    glClearColor(255.0f, 255.0f, 255.0f, 0.5f);
+    glClearDepth(1.0f);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+    return TRUE;
 }
 
-int DrawGLScene(GLvoid)									// Here's Where We Do All The Drawing
+int DrawGLScene(GLvoid)
 {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	// Clear Screen And Depth Buffer
-    glLoadIdentity();									// Reset The Current Modelview Matrix
-    return TRUE;										// Everything Went OK
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glLoadIdentity();
+    return TRUE;
 }
 
-GLvoid KillGLWindow(GLvoid)								// Properly Kill The Window
+GLvoid KillGLWindow(GLvoid)
 {
-    if (fullscreen)										// Are We In Fullscreen Mode?
+    if (fullscreen)
     {
-        ChangeDisplaySettings(NULL, 0);					// If So Switch Back To The Desktop
-        ShowCursor(TRUE);								// Show Mouse Pointer
+        ChangeDisplaySettings(NULL, 0);
+        ShowCursor(TRUE);
     }
 
-    if (hRC)											// Do We Have A Rendering Context?
+    if (hRC)
     {
-        if (!wglMakeCurrent(NULL, NULL))					// Are We Able To Release The DC And RC Contexts?
+        if (!wglMakeCurrent(NULL, NULL))
         {
             MessageBox(NULL, _T("Release Of DC And RC Failed."), _T("SHUTDOWN ERROR"), MB_OK | MB_ICONINFORMATION);
         }
 
-        if (!wglDeleteContext(hRC))						// Are We Able To Delete The RC?
+        if (!wglDeleteContext(hRC))
         {
             MessageBox(NULL, _T("Release Rendering Context Failed."), _T("SHUTDOWN ERROR"), MB_OK | MB_ICONINFORMATION);
         }
-        hRC = NULL;										// Set RC To NULL
+        hRC = NULL;
     }
 
-    if (hDC && !ReleaseDC(hWnd, hDC))					// Are We Able To Release The DC
+    if (hDC && !ReleaseDC(hWnd, hDC))
     {
         MessageBox(NULL, _T("Release Device Context Failed."), _T("SHUTDOWN ERROR"), MB_OK | MB_ICONINFORMATION);
-        hDC = NULL;										// Set DC To NULL
+        hDC = NULL;
     }
 
-    if (hWnd && !DestroyWindow(hWnd))					// Are We Able To Destroy The Window?
+    if (hWnd && !DestroyWindow(hWnd))
     {
         MessageBox(NULL, _T("Could Not Release hWnd."), _T("SHUTDOWN ERROR"), MB_OK | MB_ICONINFORMATION);
-        hWnd = NULL;										// Set hWnd To NULL
+        hWnd = NULL;
     }
 
-    if (!UnregisterClass(_T("OpenGL"), hInstance))			// Are We Able To Unregister Class
+    if (!UnregisterClass(_T("OpenGL"), hInstance))
     {
         MessageBox(NULL, _T("Could Not Unregister Class."), _T("SHUTDOWN ERROR"), MB_OK | MB_ICONINFORMATION);
-        hInstance = NULL;									// Set hInstance To NULL
+        hInstance = NULL;
     }
 }
-
-/*	This Code Creates Our OpenGL Window.  Parameters Are:					*
-*	title			- Title To Appear At The Top Of The Window				*
-*	width			- Width Of The GL Window Or Fullscreen Mode				*
-*	height			- Height Of The GL Window Or Fullscreen Mode			*
-*	bits			- Number Of Bits To Use For Color (8/16/24/32)			*
-*	fullscreenflag	- Use Fullscreen Mode (TRUE) Or Windowed Mode (FALSE)	*/
 
 BOOL CreateGLWindow(char* title, int width, int height, int bits, bool fullscreenflag)
 {
-    GLuint		PixelFormat;			// Holds The Results After Searching For A Match
-    WNDCLASS	wc;						// Windows Class Structure
-    DWORD		dwExStyle;				// Window Extended Style
-    DWORD		dwStyle;				// Window Style
-    RECT		WindowRect;				// Grabs Rectangle Upper Left / Lower Right Values
-    WindowRect.left = (long)0;			// Set Left Value To 0
-    WindowRect.right = (long)width;		// Set Right Value To Requested Width
-    WindowRect.top = (long)0;				// Set Top Value To 0
-    WindowRect.bottom = (long)height;		// Set Bottom Value To Requested Height
+    GLuint PixelFormat;
+    WNDCLASS wc;
+    DWORD dwExStyle;
+    DWORD dwStyle;
+    RECT WindowRect;
+    WindowRect.left = (long)0;
+    WindowRect.right = (long)width;
+    WindowRect.top = (long)0;
+    WindowRect.bottom = (long)height;
 
-    fullscreen = fullscreenflag;			// Set The Global Fullscreen Flag
+    fullscreen = fullscreenflag;
 
-    hInstance = GetModuleHandle(NULL);				// Grab An Instance For Our Window
-    wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;	// Redraw On Size, And Own DC For Window.
-    wc.lpfnWndProc = (WNDPROC)WndProc;					// WndProc Handles Messages
-    wc.cbClsExtra = 0;									// No Extra Window Data
-    wc.cbWndExtra = 0;									// No Extra Window Data
-    wc.hInstance = hInstance;							// Set The Instance
-    wc.hIcon = LoadIcon(NULL, IDI_WINLOGO);			// Load The Default Icon
-    wc.hCursor = LoadCursor(NULL, IDC_ARROW);			// Load The Arrow Pointer
-    wc.hbrBackground = NULL;									// No Background Required For GL
-    wc.lpszMenuName = NULL;									// We Don't Want A Menu
-    wc.lpszClassName = _T("OpenGL");								// Set The Class Name
+    hInstance = GetModuleHandle(NULL);
+    wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+    wc.lpfnWndProc = (WNDPROC)WndProc;
+    wc.cbClsExtra = 0;
+    wc.cbWndExtra = 0;
+    wc.hInstance = hInstance;
+    wc.hIcon = LoadIcon(NULL, IDI_WINLOGO);
+    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wc.hbrBackground = NULL;
+    wc.lpszMenuName = NULL;
+    wc.lpszClassName = _T("OpenGL");
 
-    if (!RegisterClass(&wc))									// Attempt To Register The Window Class
+    if (!RegisterClass(&wc))
     {
         MessageBox(NULL, _T("Failed To Register The Window Class."), _T("ERROR"), MB_OK | MB_ICONEXCLAMATION);
-        return FALSE;											// Return FALSE
+        return FALSE;
     }
 
-    if (fullscreen)												// Attempt Fullscreen Mode?
+    if (fullscreen)
     {
-        DEVMODE dmScreenSettings;								// Device Mode
-        memset(&dmScreenSettings, 0, sizeof(dmScreenSettings));	// Makes Sure Memory's Cleared
-        dmScreenSettings.dmSize = sizeof(dmScreenSettings);		// Size Of The Devmode Structure
-        dmScreenSettings.dmPelsWidth = width;				// Selected Screen Width
-        dmScreenSettings.dmPelsHeight = height;				// Selected Screen Height
-        dmScreenSettings.dmBitsPerPel = bits;					// Selected Bits Per Pixel
+        DEVMODE dmScreenSettings;
+        memset(&dmScreenSettings, 0, sizeof(dmScreenSettings));
+        dmScreenSettings.dmSize = sizeof(dmScreenSettings);
+        dmScreenSettings.dmPelsWidth = width;
+        dmScreenSettings.dmPelsHeight = height;
+        dmScreenSettings.dmBitsPerPel = bits;
         dmScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 
-        // Try To Set Selected Mode And Get Results.  NOTE: CDS_FULLSCREEN Gets Rid Of Start Bar.
         if (ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
         {
-            // If The Mode Fails, Offer Two Options.  Quit Or Use Windowed Mode.
             if (MessageBox(NULL, _T("The Requested Fullscreen Mode Is Not Supported By\nYour Video Card. Use Windowed Mode Instead?"), _T("NeHe GL"), MB_YESNO | MB_ICONEXCLAMATION) == IDYES)
             {
-                fullscreen = FALSE;		// Windowed Mode Selected.  Fullscreen = FALSE
+                fullscreen = FALSE;
             }
             else
             {
-                // Pop Up A Message Box Letting User Know The Program Is Closing.
                 MessageBox(NULL, _T("Program Will Now Close."), _T("ERROR"), MB_OK | MB_ICONSTOP);
-                return FALSE;									// Return FALSE
+                return FALSE;
             }
         }
     }
 
-    if (fullscreen)												// Are We Still In Fullscreen Mode?
+    if (fullscreen)
     {
-        dwExStyle = WS_EX_APPWINDOW;								// Window Extended Style
-        dwStyle = WS_POPUP;										// Windows Style
-        ShowCursor(FALSE);										// Hide Mouse Pointer
+        dwExStyle = WS_EX_APPWINDOW;
+        dwStyle = WS_POPUP;
+        ShowCursor(FALSE);
     }
     else
     {
-        dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;			// Window Extended Style
-        dwStyle = WS_OVERLAPPEDWINDOW;							// Windows Style
+        dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
+        dwStyle = WS_OVERLAPPEDWINDOW;
     }
 
-    AdjustWindowRectEx(&WindowRect, dwStyle, FALSE, dwExStyle);		// Adjust Window To True Requested Size
+    AdjustWindowRectEx(&WindowRect, dwStyle, FALSE, dwExStyle);
 
-    // Create The Window
-    if (!(hWnd = CreateWindowEx(dwExStyle,							// Extended Style For The Window
-        _T("OpenGL"),							// Class Name
-        _T("Title"),								// Window Title
-        dwStyle |							// Defined Window Style
-        WS_CLIPSIBLINGS |					// Required Window Style
-        WS_CLIPCHILDREN,					// Required Window Style
-        0, 0,								// Window Position
-        WindowRect.right - WindowRect.left,	// Calculate Window Width
-        WindowRect.bottom - WindowRect.top,	// Calculate Window Height
-        NULL,								// No Parent Window
-        NULL,								// No Menu
-        hInstance,							// Instance
-        NULL)))								// Dont Pass Anything To WM_CREATE
+    if (!(hWnd = CreateWindowEx(dwExStyle,
+        _T("OpenGL"),
+        _T("Title"),
+        dwStyle |
+        WS_CLIPSIBLINGS |
+        WS_CLIPCHILDREN,
+        0, 0,
+        WindowRect.right - WindowRect.left,
+        WindowRect.bottom - WindowRect.top,
+        NULL,
+        NULL,
+        hInstance,
+        NULL)))
     {
-        KillGLWindow();								// Reset The Display
+        KillGLWindow();
         MessageBox(NULL, _T("Window Creation Error."), _T("ERROR"), MB_OK | MB_ICONEXCLAMATION);
-        return FALSE;								// Return FALSE
+        return FALSE;
     }
 
-    static	PIXELFORMATDESCRIPTOR pfd =				// pfd Tells Windows How We Want Things To Be
+    static	PIXELFORMATDESCRIPTOR pfd =
     {
-        sizeof(PIXELFORMATDESCRIPTOR),				// Size Of This Pixel Format Descriptor
-        1,											// Version Number
-        PFD_DRAW_TO_WINDOW |						// Format Must Support Window
-        PFD_SUPPORT_OPENGL |						// Format Must Support OpenGL
-        PFD_DOUBLEBUFFER,							// Must Support Double Buffering
-        PFD_TYPE_RGBA,								// Request An RGBA Format
-        bits,										// Select Our Color Depth
-        0, 0, 0, 0, 0, 0,							// Color Bits Ignored
-        0,											// No Alpha Buffer
-        0,											// Shift Bit Ignored
-        0,											// No Accumulation Buffer
-        0, 0, 0, 0,									// Accumulation Bits Ignored
-        16,											// 16Bit Z-Buffer (Depth Buffer)  
-        0,											// No Stencil Buffer
-        0,											// No Auxiliary Buffer
-        PFD_MAIN_PLANE,								// Main Drawing Layer
-        0,											// Reserved
-        0, 0, 0										// Layer Masks Ignored
+        sizeof(PIXELFORMATDESCRIPTOR),
+        1,
+        PFD_DRAW_TO_WINDOW |
+        PFD_SUPPORT_OPENGL |
+        PFD_DOUBLEBUFFER,
+        PFD_TYPE_RGBA,
+        bits,
+        0, 0, 0, 0, 0, 0,
+        0,
+        0,
+        0,
+        0, 0, 0, 0,
+        16,
+        0,
+        0,
+        PFD_MAIN_PLANE,
+        0,
+        0, 0, 0
     };
 
-    if (!(hDC = GetDC(hWnd)))							// Did We Get A Device Context?
+    if (!(hDC = GetDC(hWnd)))
     {
-        KillGLWindow();								// Reset The Display
+        KillGLWindow();
         MessageBox(NULL, _T("Can't Create A GL Device Context."), _T("ERROR"), MB_OK | MB_ICONEXCLAMATION);
-        return FALSE;								// Return FALSE
+        return FALSE;
     }
 
-    if (!(PixelFormat = ChoosePixelFormat(hDC, &pfd)))	// Did Windows Find A Matching Pixel Format?
+    if (!(PixelFormat = ChoosePixelFormat(hDC, &pfd)))
     {
-        KillGLWindow();								// Reset The Display
+        KillGLWindow();
         MessageBox(NULL, _T("Can't Find A Suitable PixelFormat."), _T("ERROR"), MB_OK | MB_ICONEXCLAMATION);
-        return FALSE;								// Return FALSE
+        return FALSE;
     }
 
-    if (!SetPixelFormat(hDC, PixelFormat, &pfd))		// Are We Able To Set The Pixel Format?
+    if (!SetPixelFormat(hDC, PixelFormat, &pfd))
     {
-        KillGLWindow();								// Reset The Display
+        KillGLWindow();
         MessageBox(NULL, _T("Can't Set The PixelFormat."), _T("ERROR"), MB_OK | MB_ICONEXCLAMATION);
-        return FALSE;								// Return FALSE
+        return FALSE;
     }
 
-    if (!(hRC = wglCreateContext(hDC)))				// Are We Able To Get A Rendering Context?
+    if (!(hRC = wglCreateContext(hDC)))
     {
-        KillGLWindow();								// Reset The Display
+        KillGLWindow();
         MessageBox(NULL, _T("Can't Create A GL Rendering Context."), _T("ERROR"), MB_OK | MB_ICONEXCLAMATION);
-        return FALSE;								// Return FALSE
+        return FALSE;
     }
 
-    if (!wglMakeCurrent(hDC, hRC))					// Try To Activate The Rendering Context
+    if (!wglMakeCurrent(hDC, hRC))
     {
-        KillGLWindow();								// Reset The Display
+        KillGLWindow();
         MessageBox(NULL, _T("Can't Activate The GL Rendering Context."), _T("ERROR"), MB_OK | MB_ICONEXCLAMATION);
-        return FALSE;								// Return FALSE
+        return FALSE;
     }
 
-    ShowWindow(hWnd, SW_SHOW);						// Show The Window
-    SetForegroundWindow(hWnd);						// Slightly Higher Priority
-    SetFocus(hWnd);									// Sets Keyboard Focus To The Window
-    ReSizeGLScene(width, height);					// Set Up Our Perspective GL Screen
+    ShowWindow(hWnd, SW_SHOW);
+    SetForegroundWindow(hWnd);
+    SetFocus(hWnd);
+    ReSizeGLScene(width, height);
 
-    if (!InitGL())									// Initialize Our Newly Created GL Window
+    if (!InitGL())
     {
-        KillGLWindow();								// Reset The Display
+        KillGLWindow();
         MessageBox(NULL, _T("Initialization Failed."), _T("ERROR"), MB_OK | MB_ICONEXCLAMATION);
-        return FALSE;								// Return FALSE
+        return FALSE;
     }
 
-    return TRUE;									// Success
+    return TRUE;
 }
 
-LRESULT CALLBACK WndProc(HWND	hWnd,			// Handle For This Window
-    UINT	uMsg,			// Message For This Window
-    WPARAM	wParam,			// Additional Message Information
-    LPARAM	lParam)			// Additional Message Information
+LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    switch (uMsg)									// Check For Windows Messages
+    switch (uMsg)
     {
-    case WM_ACTIVATE:							// Watch For Window Activate Message
+    case WM_ACTIVATE:
     {
-        if (!HIWORD(wParam))					// Check Minimization State
+        if (!HIWORD(wParam))
         {
-            active = TRUE;						// Program Is Active
+            active = TRUE;
         }
         else
         {
-            active = FALSE;						// Program Is No Longer Active
+            active = FALSE;
         }
 
-        return 0;								// Return To The Message Loop
+        return 0;
     }
 
-    case WM_SYSCOMMAND:							// Intercept System Commands
+    case WM_SYSCOMMAND:
     {
-        switch (wParam)							// Check System Calls
+        switch (wParam)
         {
-        case SC_SCREENSAVE:					// Screensaver Trying To Start?
-        case SC_MONITORPOWER:				// Monitor Trying To Enter Powersave?
-            return 0;							// Prevent From Happening
+        case SC_SCREENSAVE:
+        case SC_MONITORPOWER:
+            return 0;
         }
-        break;									// Exit
+        break;
     }
 
-    case WM_CLOSE:								// Did We Receive A Close Message?
+    case WM_CLOSE:
     {
-        PostQuitMessage(0);						// Send A Quit Message
-        return 0;								// Jump Back
+        PostQuitMessage(0);
+        return 0;
     }
 
-    case WM_KEYDOWN:							// Is A Key Being Held Down?
+    case WM_KEYDOWN:
     {
-        keys[wParam] = TRUE;					// If So, Mark It As TRUE
-        return 0;								// Jump Back
+        keys[wParam] = TRUE;
+        return 0;
     }
 
-    case WM_KEYUP:								// Has A Key Been Released?
+    case WM_KEYUP:
     {
-        keys[wParam] = FALSE;					// If So, Mark It As FALSE
-        return 0;								// Jump Back
+        keys[wParam] = FALSE;
+        return 0;
     }
 
-    case WM_SIZE:								// Resize The OpenGL Window
+    case WM_SIZE:
     {
-        ReSizeGLScene(LOWORD(lParam), HIWORD(lParam));  // LoWord=Width, HiWord=Height
-        return 0;								// Jump Back
+        ReSizeGLScene(LOWORD(lParam), HIWORD(lParam));
+        return 0;
     }
     }
 
-    // Pass All Unhandled Messages To DefWindowProc
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
-int WINAPI WinMain(HINSTANCE	hInstance,			// Instance
-    HINSTANCE	hPrevInstance,		// Previous Instance
-    LPSTR		lpCmdLine,			// Command Line Parameters
-    int			nCmdShow)			// Window Show State
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-    MSG		msg;									// Windows Message Structure
-    BOOL	done = FALSE;								// Bool Variable To Exit Loop
+    MSG msg;
+    BOOL done = FALSE;
 
-    // Ask The User Which Screen Mode They Prefer
     if (MessageBox(NULL, _T("Would You Like To Run In Fullscreen Mode?"), _T("Start FullScreen?"), MB_YESNO | MB_ICONQUESTION) == IDNO)
     {
-        fullscreen = FALSE;							// Windowed Mode
+        fullscreen = FALSE;
     }
 
-    // Create Our OpenGL Window
     if (!CreateGLWindow("NeHe's OpenGL Framework", 640, 480, 16, fullscreen))
     {
-        return 0;									// Quit If Window Was Not Created
+        return 0;
     }
 
-    while (!done)									// Loop That Runs While done=FALSE
+    while (!done)
     {
-        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))	// Is There A Message Waiting?
+        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
         {
-            if (msg.message == WM_QUIT)				// Have We Received A Quit Message?
+            if (msg.message == WM_QUIT)
             {
-                done = TRUE;							// If So done=TRUE
+                done = TRUE;
             }
-            else									// If Not, Deal With Window Messages
+            else
             {
-                TranslateMessage(&msg);				// Translate The Message
-                DispatchMessage(&msg);				// Dispatch The Message
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
             }
         }
-        else										// If There Are No Messages
+        else
         {
-            // Draw The Scene.  Watch For ESC Key And Quit Messages From DrawGLScene()
-            if (active)								// Program Active?
+            if (active)
             {
-                if (keys[VK_ESCAPE])				// Was ESC Pressed?
+                if (keys[VK_ESCAPE])
                 {
-                    done = TRUE;						// ESC Signalled A Quit
+                    done = TRUE;
                 }
-                else								// Not Time To Quit, Update Screen
+                else
                 {
-                    DrawGLScene();					// Draw The Scene
-                    SwapBuffers(hDC);				// Swap Buffers (Double Buffering)
+                    DrawGLScene();
+                    SwapBuffers(hDC);
                 }
             }
 
-            if (keys[VK_F1])						// Is F1 Being Pressed?
+            if (keys[VK_F1])
             {
-                keys[VK_F1] = FALSE;					// If So Make Key FALSE
-                KillGLWindow();						// Kill Our Current Window
-                fullscreen = !fullscreen;				// Toggle Fullscreen / Windowed Mode
-                // Recreate Our OpenGL Window
+                keys[VK_F1] = FALSE;
+                KillGLWindow();
+                fullscreen = !fullscreen;
+
                 if (!CreateGLWindow("NeHe's OpenGL Framework", 640, 480, 16, fullscreen))
                 {
-                    return 0;						// Quit If Window Was Not Created
+                    return 0;
                 }
             }
         }
     }
-
-    // Shutdown
-    KillGLWindow();									// Kill The Window
-    return (msg.wParam);							// Exit The Program
+    
+    KillGLWindow();
+    return (msg.wParam);
 }
