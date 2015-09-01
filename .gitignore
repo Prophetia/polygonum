@@ -7,6 +7,7 @@
 # Precompiled Headers
 *.gch
 *.pch
+*.ipch
 
 # Compiled Dynamic libraries
 *.so
@@ -27,5 +28,22 @@
 *.out
 *.app
 
+#Binary folders
+[Oo]bj/
+[Bb]in
+[Dd]ebug*/
+[Rr]elease*/
+
+#Log Files
+*.log
+*.tlog
+*.lastbuildstate
+
 # Other
 *.opensdf
+*.ilk
+*.pdb
+*.idb
+*.res
+
+
